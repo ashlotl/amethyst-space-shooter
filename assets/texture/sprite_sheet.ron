@@ -1,0 +1,12 @@
+List((
+	texture_width:64,
+	texture_height:64,
+	sprites: [
+		(//ship
+			x:0,
+			y:0,
+			width:8,
+			height:8,
+		),
+	]
+))
