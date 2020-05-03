@@ -1,1 +1,1 @@
-mod ship;
+pub mod ship;

@@ -3,7 +3,7 @@ mod game;
 mod resource_management;
 
 //have children
-mod objs {pub mod ship;}
+mod objs;
 
 //what matters in this file
 use crate :: {

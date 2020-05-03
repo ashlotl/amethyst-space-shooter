@@ -1,10 +1,10 @@
 List((
-	texture_width:64,
-	texture_height:64,
+	texture_width:800,
+	texture_height:800,
 	sprites: [
 		(//ship
-			x:0,
-			y:0,
+			x:100,
+			y:100,
 			width:8,
 			height:8,
 		),

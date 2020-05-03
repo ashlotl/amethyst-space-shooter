@@ -1,12 +1,12 @@
 use crate::resource_management;
-use crate::objs::ship;
-
+use crate::objs::*;
 
 use amethyst::{
 	prelude::{
 		SimpleState,
 		StateData,
 		GameData,
+		WorldExt,
 	},
 	assets::{
 		Handle,
@@ -16,12 +16,12 @@ use amethyst::{
 	},
 };
 
-const NUM_SHIPS:u32 = 2;
+pub const NUM_SHIPS:u32 = 2;
 
-const GAME_WIDTH:f32 = 500.0;
-const GAME_HEIGHT:f32 = 500.0;
+pub const GAME_WIDTH:f32 = 500.0;
+pub const GAME_HEIGHT:f32 = 500.0;
 
-const PI:f32 = 3.14159;
+pub const PI:f32 = 3.14159;
 
 #[derive(Default)]
 pub struct OrbFire {
@@ -34,9 +34,13 @@ impl SimpleState for OrbFire {
 
 		self.sprite_sheet_handle.replace(resource_management::make_sprite_sheet(world));
 
-		world.register::<Ship>()
+		world.register::<animate::ship::Ship>();
+		world.register::<special::camera::CameraOptions>();
+
 		for id in 0..NUM_SHIPS {
-			ship::init_ship(world, self.sprite_sheet_handle.clone().unwrap(), id);
+			animate::ship::init_ship(world, self.sprite_sheet_handle.clone().unwrap(), id);
 		}
+
+		special::camera::init_camera(world);
 	}
 }
