@@ -18,8 +18,8 @@ use amethyst::{
 
 pub const NUM_SHIPS:u32 = 2;
 
-pub const GAME_WIDTH:f32 = 500.0;
-pub const GAME_HEIGHT:f32 = 500.0;
+pub const GAME_WIDTH:f32 = 100.0;
+pub const GAME_HEIGHT:f32 = 100.0;
 
 pub const PI:f32 = 3.14159;
 

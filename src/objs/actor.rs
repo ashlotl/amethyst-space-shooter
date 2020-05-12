@@ -2,11 +2,21 @@
 use std::ops;
 
 use amethyst::{
+	core::{
+		math::{
+			base::ArrayStorage,
+			geometry::Translation3,
+			Matrix,
+			U4,
+		},
+		Transform,
+	},
 	ecs::prelude::{
 		Component,
 		DenseVecStorage,
 	},
 };
+
 
 pub enum DamageType {
 	Ballistic,
@@ -19,14 +29,37 @@ pub trait Actor {
 	fn take_damage<T: Actor>(&mut self,amount:u32, dam_type:DamageType, from_id:&T);
 	fn do_collision<T: Actor>(&mut self,input_newtons:f32,other:&T);
 
+	fn exists_collision<T: Actor>(&mut self, other:&mut T, loc1:Transform, loc2:Transform, physics_layer_bounds1:[i32;2], physics_layer_bounds2:[i32;2]) -> bool {
+		false//reduces headache for non-interactables
+	}
+
+	fn get_radius_with_transform(&mut self, my_transform:Transform, translation:Translation3<f32>) -> f32 {
+		15.0
+	}
+
 	fn to_string (&self) -> String {
 		String::from("(unimplemented to_string) Actor")
 	}
 }
 
+//aliases
+pub type MatrixVel=Matrix<f32,U4,U4,ArrayStorage<f32,U4,U4>>;
+
+//impls
+impl Component for MatrixVel {
+	type Storage=DenseVecStorage<Self>;
+}
+//helper types
+
 pub struct Vector {
 	x:f32,
 	y:f32,
+}
+
+impl Vector {
+	fn from(loc:&Transform) {
+
+	}
 }
 
 impl ops::AddAssign<Vector> for Vector {

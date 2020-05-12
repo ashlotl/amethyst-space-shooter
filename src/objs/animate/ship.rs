@@ -12,6 +12,11 @@ use amethyst::{
 		DenseVecStorage,
 	},
 	core::{
+		math::{
+			geometry::Translation,
+			Matrix,
+			U3,
+		},
 		Transform,
 	},
 	renderer::{
@@ -31,6 +36,9 @@ use crate::{
 			Actor,
 			DamageType,
 		},
+	},
+	utility::{
+		transform_math,
 	},
 };
 
@@ -59,8 +67,20 @@ impl Actor for Ship {
 		println !("Ouch.");
 	}
 
+	fn exists_collision<T: Actor>(&mut self, other:&mut T, loc1:Transform, loc2:Transform, collision_layers_1:[i32;2], collision_layers_2:[i32;2]) -> bool {
+		if collision_layers_1[1]>=collision_layers_2[0]||collision_layers_1[0]<=collision_layers_2[1] {
+			let tr2 = loc2.translation().clone();
+			let tr1 = loc1.translation().clone();
+			// let vec:Vector = Vector::from(tr2.x-tr1.x,tr2.y-tr1.y,tr2.z-tr1.z);
+			if transform_math::dist_sqrd(tr1,tr2)<=(self.get_radius_with_transform(loc1,Translation::<f32,U3>::from(tr2-tr1))+other.get_radius_with_transform(loc2,Translation::<f32,U3>::from(tr1-tr2))).powi(2) {
+				return true;
+			}
+		}
+		false
+	}
+
 	fn to_string(&self) -> String {
-		String::from(format!("Ship: health:{} ammo:{} fuel:{}",self.health, self.ammo, self.fuel))
+		String::from(format!("Ship:  health:{} ammo:{} fuel:{}",self.health, self.ammo, self.fuel))
 	}
 }
 
@@ -71,12 +91,12 @@ const DEF_SHIP_FUEL:f32 = 100.0;
 pub fn init_ship(world:&mut World, sprite_handle:Handle<SpriteSheet>, id:u32) {
 
 
-	let angle = 0.2 * id as f32/NUM_SHIPS as f32 * PI;
+	let angle = 2.0/NUM_SHIPS as f32 * id as f32 * PI;
 
 	let x=GAME_WIDTH*angle.cos()/4.0;
 	let y=GAME_HEIGHT*angle.sin()/4.0;
 
-	let mut velocity = Transform::default();
+	let mut velocity = Matrix::new();
 
 	velocity.set_translation_xyz(-y, x, 0.0);
 

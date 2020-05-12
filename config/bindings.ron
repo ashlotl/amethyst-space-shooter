@@ -1,0 +1,10 @@
+(
+	axes: {
+		"first_ship_up": Emulated(pos: Key(W), neg: Key(S)),
+		"first_ship_right": Emulated(pos: Key(D), neg: Key(A)),
+
+		"second_ship_up": Emulated(pos: Key(Up), neg: Key(Down)),
+		"second_ship_right": Emulated(pos: Key(Right), neg: Key(Left)),
+	},
+	actions: {}
+)
