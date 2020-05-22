@@ -1,4 +1,6 @@
-# space-orbiter
+# space-orbiter (gridready)
+
+## This is a quick project to mess around with computation division before delving into grid computing with webRTC
 
 ## How to run
 
