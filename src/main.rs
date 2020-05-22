@@ -10,7 +10,10 @@ mod utility;
 //what matters in this file
 use crate :: {
 	game	:: OrbFire,
-	systems	:: player_input	:: PlayerInputSystem,
+	systems	:: {
+		player_input	:: PlayerInputSystem,
+		physics			:: PhysicsSystem,
+	},
 };
 
 use amethyst :: {
@@ -42,6 +45,9 @@ fn main() -> amethyst :: Result<()> {
     let display_config_path	= config_dir.	join("display.ron");
 	let binding_path		= config_dir.	join("bindings.ron");
 
+	let inb = InputBundle::<StringBindings>::new()
+		.with_bindings_from_file(binding_path)?;
+
     let game_data = GameDataBuilder :: default()
         .with_bundle(
             RenderingBundle :: <DefaultBackend> :: new()
@@ -55,13 +61,25 @@ fn main() -> amethyst :: Result<()> {
         )?
         .with_bundle(TransformBundle :: new())?
 		.with_bundle(
-			InputBundle::<StringBindings>::new()
-				.with_bindings_from_file(binding_path)?
+			inb,
 		)?
 		.with(
-			PlayerInputSystem,
+			PlayerInputSystem {
+				scale:5.0,
+			},
 			"player_input_system",
 			&[],
+		)
+		.with(
+			PhysicsSystem {
+				scale:40.0,
+				translation_scale:1.0,
+				rotation_scale:1.0,
+				gravity_scale:1.0,
+				grav_const:0.001,
+			},
+			"physics_system",
+			&["player_input_system"],
 		);
 
     let mut game = Application :: new(assets_dir, OrbFire::default(), game_data)?;

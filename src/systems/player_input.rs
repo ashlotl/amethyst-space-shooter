@@ -46,43 +46,55 @@ use crate::{
 
 
 #[derive(SystemDesc)]
-pub struct PlayerInputSystem;
+pub struct PlayerInputSystem {
+	pub scale:f32,
+}
 
 
 impl<'s> System<'s> for PlayerInputSystem {
 	type SystemData = (
 		WriteStorage<'s, MatrixVel>,//vel
-		WriteStorage<'s, Transform>,//pos
-		ReadStorage<'s, Ship>,
+		WriteStorage<'s, Ship>,
 		Read<'s, InputHandler<StringBindings>>,
 		Read<'s, Time>,
 	);
 
-	fn run(&mut self, (mut vels, mut poss, ships, input, time): Self::SystemData) {
+	fn run(&mut self, (mut vels, mut ships, input, time): Self::SystemData) {
 		let mut id=0;
-		for (vel,pos,ship) in (&mut vels,&mut poss, &ships).join() {
-			let delta=time.delta_seconds()*4.0;
+		for (vel,ship) in (&mut vels, &mut ships).join() {
+			let delta=time.delta_seconds()*self.scale;
 			let accel1 = match id {
 				0 => {
-					Vector3::<f32>::new(
-						input.axis_value("first_ship_right").unwrap()*delta,
-						input.axis_value("first_ship_up").unwrap()*delta,
+					let mut t = Transform::default();
+					t.set_translation_xyz(
+						input.axis_value("first_ship_right").unwrap()*delta*delta,//squaring is intentional
+						input.axis_value("first_ship_up").unwrap()*delta*delta,
 						0.0,
-					)
+					);
+					t
 				},
 				1 => {
-					Vector3::<f32>::new(
-						input.axis_value("second_ship_right").unwrap()*delta,
-						input.axis_value("second_ship_up").unwrap()*delta,
+					let mut t = Transform::default();
+					t.set_translation_xyz(
+						input.axis_value("second_ship_right").unwrap()*delta*delta,//squaring is intentional
+						input.axis_value("second_ship_up").unwrap()*delta*delta,
 						0.0,
-					)
+					);
+					t
 				},
 				_ => {
-					Vector3::<f32>::new(0.0,0.0,0.0)//you'd put some code to retrieve from netcode buffer here, or "ai". For now we'll just let it fall endlessly.
+					Transform::default()//you'd put some code to retrieve from netcode buffer here, or "ai". For now we'll just let it fall endlessly.
 				},
 			};
 			//now, instead of leaving this information for the next system, we'll just add to the position for a test.
-			pos.set_translation(pos.translation().clone()+accel1);
+			vel.0.prepend_translation(accel1.translation().clone());
+			let (xr,yr,zr) = vel.0.euler_angles();
+			let (fx,fy,fz) = accel1.euler_angles();
+			vel.0.set_rotation_euler(xr+fx,yr+fy,zr+fz);
+			// vel.0.set_translation_xyz(
+			// 	//x
+			//
+			// );
 
 			id+=1;
 		}

@@ -35,6 +35,7 @@ use crate::{
 		actor::{
 			Actor,
 			DamageType,
+			MatrixVel,
 		},
 	},
 	utility::{
@@ -67,16 +68,8 @@ impl Actor for Ship {
 		println !("Ouch.");
 	}
 
-	fn exists_collision<T: Actor>(&mut self, other:&mut T, loc1:Transform, loc2:Transform, collision_layers_1:[i32;2], collision_layers_2:[i32;2]) -> bool {
-		if collision_layers_1[1]>=collision_layers_2[0]||collision_layers_1[0]<=collision_layers_2[1] {
-			let tr2 = loc2.translation().clone();
-			let tr1 = loc1.translation().clone();
-			// let vec:Vector = Vector::from(tr2.x-tr1.x,tr2.y-tr1.y,tr2.z-tr1.z);
-			if transform_math::dist_sqrd(tr1,tr2)<=(self.get_radius_with_transform(loc1,Translation::<f32,U3>::from(tr2-tr1))+other.get_radius_with_transform(loc2,Translation::<f32,U3>::from(tr1-tr2))).powi(2) {
-				return true;
-			}
-		}
-		false
+	fn calculate_mass(&self)->f32 {
+		15.0
 	}
 
 	fn to_string(&self) -> String {
@@ -91,15 +84,15 @@ const DEF_SHIP_FUEL:f32 = 100.0;
 pub fn init_ship(world:&mut World, sprite_handle:Handle<SpriteSheet>, id:u32) {
 
 
-	let angle = 2.0/NUM_SHIPS as f32 * id as f32 * PI;
+	let angle = 2.0/NUM_SHIPS as f32 * (id+1) as f32 * PI;
 
 	let x=GAME_WIDTH*angle.cos()/4.0;
 	let y=GAME_HEIGHT*angle.sin()/4.0;
 
-	let mut velocity = Matrix::new();
+	let mut velocity = Transform::default();
 
-	velocity.set_translation_xyz(-y, x, 0.0);
-
+	velocity.set_translation_xyz(y/600.0, -x/600.0, 0.0);
+	velocity.set_rotation_euler(0.0,0.0,0.001*(2.0*(id as f32-1.0)+1.0));
 
 	let mut local_transform = Transform::default();
 
@@ -118,7 +111,7 @@ pub fn init_ship(world:&mut World, sprite_handle:Handle<SpriteSheet>, id:u32) {
 			ammo: DEF_SHIP_AMMO,
 			fuel: DEF_SHIP_FUEL,
 		})
-		.with(velocity)
+		.with(MatrixVel(velocity.clone(),velocity))
 		.with(local_transform)//the order here is crucial!! amethyst will use the latter for position!
 		.build();
 }
