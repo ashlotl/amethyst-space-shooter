@@ -30,11 +30,11 @@ pub trait Actor {
 	fn calculate_mass(&self) -> f32;
 
 	fn get_radius_with_transform(&self, my_transform:&Transform, translation:&Matrix<f32,U3,U1,ArrayStorage<f32,U3,U1>>) -> f32 {//get radius from transform (of this ship) to translation (other collider), taking into account rotation and shape of sprite
-		0.1
+		5.0
 	}
 
 	fn elastic_loss(&self) -> f32 {
-		0.3
+		0.0
 	}
 
 	fn to_string (&self) -> String {
@@ -43,9 +43,15 @@ pub trait Actor {
 }
 
 //types
-pub struct MatrixVel(pub Transform,pub Transform);
+pub struct MatrixVel(Transform)
 
 impl Component for MatrixVel {
+	type Storage=DenseVecStorage<Self>;
+}
+
+pub struct MatrixPosition(pub Transform);
+
+impl Component for MatrixPosition {
 	type Storage=DenseVecStorage<Self>;
 }
 

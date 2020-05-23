@@ -87,10 +87,7 @@ impl<'s> System<'s> for PlayerInputSystem {
 				},
 			};
 			//now, instead of leaving this information for the next system, we'll just add to the position for a test.
-			vel.0.prepend_translation(accel1.translation().clone());
-			let (xr,yr,zr) = vel.0.euler_angles();
-			let (fx,fy,fz) = accel1.euler_angles();
-			vel.0.set_rotation_euler(xr+fx,yr+fy,zr+fz);
+			vel.c[2].prepend_translation(accel1.translation().clone());
 			// vel.0.set_translation_xyz(
 			// 	//x
 			//

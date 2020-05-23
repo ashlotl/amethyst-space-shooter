@@ -16,7 +16,7 @@ use amethyst::{
 	},
 };
 
-pub const NUM_SHIPS:u32 = 50;
+pub const NUM_SHIPS:u32 = 9;
 
 pub const GAME_WIDTH:f32 = 100.0;
 pub const GAME_HEIGHT:f32 = 100.0;

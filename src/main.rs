@@ -72,10 +72,10 @@ fn main() -> amethyst :: Result<()> {
 		)
 		.with(
 			PhysicsSystem {
-				scale:40.0,
+				scale:100.0,
 				translation_scale:1.0,
 				rotation_scale:1.0,
-				gravity_scale:1.0,
+				gravity_scale:10.0,
 				grav_const:0.001,
 			},
 			"physics_system",
