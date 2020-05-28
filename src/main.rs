@@ -11,6 +11,7 @@ mod utility;
 use crate :: {
 	game	:: OrbFire,
 	systems	:: {
+		magic_string_instantiator::MagicStringInstantiatorSystem,
 		player_input	:: PlayerInputSystem,
 		physics			:: PhysicsSystem,
 	},
@@ -48,42 +49,51 @@ fn main() -> amethyst :: Result<()> {
 	let inb = InputBundle::<StringBindings>::new()
 		.with_bindings_from_file(binding_path)?;
 
-    let game_data = GameDataBuilder :: default()
-        .with_bundle(
-            RenderingBundle :: <DefaultBackend> :: new()
-                .with_plugin(
-                    RenderToWindow :: from_config_path(display_config_path)?
-                        .with_clear([0.0, 0.0, 0.0, 1.0]),
-                )
-                .with_plugin(
-					RenderFlat2D :: default()
-				),
-        )?
-        .with_bundle(TransformBundle :: new())?
-		.with_bundle(
-			inb,
-		)?
-		.with(
-			PlayerInputSystem {
-				scale:5.0,
-			},
-			"player_input_system",
-			&[],
-		)
-		.with(
-			PhysicsSystem {
-				scale:100.0,
-				translation_scale:1.0,
-				rotation_scale:1.0,
-				gravity_scale:10.0,
-				grav_const:0.001,
-			},
-			"physics_system",
-			&["player_input_system"],
-		);
+	unsafe {
+		let mut msis = MagicStringInstantiatorSystem::new();
+		let refe = &mut msis as *mut MagicStringInstantiatorSystem;
 
-    let mut game = Application :: new(assets_dir, OrbFire::default(), game_data)?;
-    game.run();
+	    let game_data = GameDataBuilder :: default()
+	        .with_bundle(
+	            RenderingBundle :: <DefaultBackend> :: new()
+	                .with_plugin(
+	                    RenderToWindow :: from_config_path(display_config_path)?
+	                        .with_clear([0.0, 0.1, 0.7, 1.0]),
+	                )
+	                .with_plugin(
+						RenderFlat2D :: default()
+					),
+	        )?
+	        .with_bundle(TransformBundle :: new())?
+			.with_bundle(
+				inb,
+			)?
+			.with(
+				PlayerInputSystem {
+					scale:5.0,
+				},
+				"player_input_system",
+				&[],
+			)
+			.with(
+				msis,
+				"magic_string_instantiator_system",
+				&[],
+			)
+			.with(
+				PhysicsSystem {
+					scale:100.0,
+					translation_scale:1.0,
+					rotation_scale:1.0,
+					gravity_scale:10.0,
+					grav_const:0.01,
+				},
+				"physics_system",
+				&["player_input_system"],
+			);
 
+	    let mut game = Application :: new(assets_dir, OrbFire::new(Option::None,refe), game_data)?;
+	    game.run();
+	}
     Ok(())
 }

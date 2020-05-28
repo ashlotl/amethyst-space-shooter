@@ -43,15 +43,9 @@ pub trait Actor {
 }
 
 //types
-pub struct MatrixVel(Transform)
+pub struct MatrixVel(pub Transform,pub Transform);
 
 impl Component for MatrixVel {
-	type Storage=DenseVecStorage<Self>;
-}
-
-pub struct MatrixPosition(pub Transform);
-
-impl Component for MatrixPosition {
 	type Storage=DenseVecStorage<Self>;
 }
 

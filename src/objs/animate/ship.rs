@@ -37,7 +37,6 @@ use crate::{
 		actor::{
 			Actor,
 			DamageType,
-			MatrixPosition,
 			MatrixVel,
 		},
 	},
@@ -94,7 +93,7 @@ pub fn init_ship(world:&mut World, sprite_handle:Handle<SpriteSheet>, id:u32) {
 
 	let mut velocity = Transform::default();
 
-	velocity.set_translation_xyz(-y/500.0, x/500.0, 0.0);
+	velocity.set_translation_xyz(-y/1000.0, x/1000.0, 0.0);
 	velocity.set_rotation_euler(0.0,0.0,0.001*(2.0*(id as f32-1.0)+1.0));
 
 	let mut local_transform = Transform::default();
@@ -107,14 +106,6 @@ pub fn init_ship(world:&mut World, sprite_handle:Handle<SpriteSheet>, id:u32) {
 		sprite_number: 0,
 	};
 
-	let mut vels=MatrixVel{c:
-		[
-		velocity.clone(),
-		velocity.clone(),
-		velocity.clone(),
-		]
-	};
-
 
 	world.create_entity()
 		.with(sprite_render)
@@ -123,8 +114,7 @@ pub fn init_ship(world:&mut World, sprite_handle:Handle<SpriteSheet>, id:u32) {
 			ammo: DEF_SHIP_AMMO,
 			fuel: DEF_SHIP_FUEL,
 		})
-		.with(vels)
-		.with(MatrixPosition(local_transform.clone()))
+		.with(MatrixVel(velocity.clone(),velocity))
 		.with(local_transform)
 		.build();
 }
