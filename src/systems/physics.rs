@@ -36,13 +36,15 @@ use crate::{
 	objs::{
 		actor::{
 			Actor,
-			MatrixPosition,
 			MatrixVel,
 		},
 		animate::{
 			ship::{
 				Ship,
 			},
+		},
+		operators::{
+			magic_string::MagicString,
 		},
 	},
 };
@@ -60,13 +62,13 @@ impl<'s> System<'s> for PhysicsSystem {
 	type SystemData = (
 		WriteStorage<'s, MatrixVel>,
 		WriteStorage<'s, Transform>,
-		WriteStorage<'s, MatrixPosition>,
 		ReadStorage<'s, Ship>,
+		WriteStorage<'s, MagicString>,
 		Read<'s, Time>,
 		Entities<'s>,
 	);
 
-	fn run(&mut self, (mut vels, mut poss, mut tempposs, ships, time, entities):Self::SystemData) {
+	fn run(&mut self, (mut vels, mut poss, ships, mut mstrings, time, entities):Self::SystemData) {
 		let delta=time.delta_seconds()*self.scale;
 
 		unsafe {
@@ -76,121 +78,236 @@ impl<'s> System<'s> for PhysicsSystem {
 				IT+=1;
 			}
 		}
-		for iteration in 0..2 {
-			for id in (&*entities).join() {
-				if let Some(ship) = ships.get(id) {
-					//immutable borrows first
-					let pos;
-					if iteration==0 {
-						pos=poss.get(id).unwrap().clone();
-					} else {
-						pos=tempposs.get(id).unwrap().0.clone();
-					}
-					let elastic_collision_loss = ship.elastic_loss();
-					//apply dv
-					let op=pos.translation();
-					for (oid) in (&*entities).join() {
-						if oid!=id {
-							if let Some(ship2) = ships.get(oid) {
-								let pos2 = poss.get(oid).unwrap();
-								let tp = pos2.translation();
-								let x_to = tp.x-op.x;
-								let y_to = tp.y-op.y;
-								let z_to = tp.z-op.z;
-								let dist_sqrd:f32 = (x_to*x_to+y_to*y_to+z_to*z_to);
-								let dist =  (dist_sqrd).sqrt();
-								let o_mass = ship.calculate_mass();
-								let t_mass = ship2.calculate_mass();
+		for id in (&*entities).join() {
+			if let Some(ship) = ships.get(id) {
+				//immutable borrows first
+				let pos=poss.get(id).unwrap().clone();
+				let elastic_collision_loss = ship.elastic_loss();
+				//apply dv
+				let op=pos.translation();
 
-								// gravity time
-								let f = self.grav_const*t_mass/dist_sqrd;
-								if dist!=0.0 {
-									vels.get_mut(id).unwrap().c[iteration].prepend_translation({
-										let mut t = Transform::default();
-										t.set_translation_xyz(
-											(x_to)/dist*f,
-											(y_to)/dist*f,
-											(z_to)/dist*f,
-										).translation().clone()
-									});
-								}
+				for (oid) in (&*entities).join() {
+					if oid!=id {
+						if let Some(ship2) = ships.get(oid) {
+							let pos2 = poss.get(oid).unwrap();
+							let tp = pos2.translation();
+							let x_to = tp.x-op.x;
+							let y_to = tp.y-op.y;
+							let z_to = tp.z-op.z;
+							let dist_sqrd:f32 = (x_to*x_to+y_to*y_to+z_to*z_to);
 
-								//collision time
-								let t_vel=&vels.get(oid).unwrap().c[2];
-								let t_vtr = t_vel.translation();
-								let t_vtr_x = t_vtr.x;
-								let t_vtr_y = t_vtr.y;
-								let t_vtr_z = t_vtr.z;
-								let o_vel=vels.get_mut(id).unwrap();
-								let o_vtr = o_vel.c[2].translation();
-								let o_vtr_x=o_vtr.x;
-								let o_vtr_y=o_vtr.y;
-								let o_vtr_z=o_vtr.z;
-								if dist <= ship.get_radius_with_transform(&pos,tp)+ship2.get_radius_with_transform(pos2,op) && (o_vtr_x.signum()==x_to.signum()&&o_vtr_y.signum()==y_to.signum()&&o_vtr_z.signum()==z_to.signum()) {
+							let dist =  (dist_sqrd).sqrt();
 
-									let current_mag = (o_vtr_x*o_vtr_x+o_vtr_y*o_vtr_y+o_vtr_z*o_vtr_z).sqrt();
-									let other_mag = (t_vtr_x*t_vtr_x+t_vtr_y*t_vtr_y+t_vtr_z*t_vtr_z).sqrt();
+							let xr = x_to/dist;
+							let yr = y_to/dist;
+							let zr = z_to/dist;
 
-									let coeff_1=(o_mass-t_mass)/(t_mass+o_mass);
-									let coeff_2=2.0*t_mass/(t_mass+o_mass);
+							let o_mass = ship.calculate_mass();
+							let t_mass = ship2.calculate_mass();
 
-									let mag=coeff_1*current_mag+coeff_2*other_mag;
+							// gravity time
+							let f = self.grav_const*t_mass/dist_sqrd;
+							if dist!=0.0 {
+								vels.get_mut(id).unwrap().1.prepend_translation({
+									let mut t = Transform::default();
+									t.set_translation_xyz(
+										xr*f,
+										yr*f,
+										zr*f,
+									).translation().clone()
+								});
+							}
 
-									let x = -x_to/dist*mag;
-									let y = -y_to/dist*mag;
-									let z = -z_to/dist*mag;
+							//collision time
+							let t_vel=&vels.get(oid).unwrap().0;
+							let t_vtr = t_vel.translation();
+							let t_vtr_x = t_vtr.x;
+							let t_vtr_y = t_vtr.y;
+							let t_vtr_z = t_vtr.z;
+							let o_vel=vels.get_mut(id).unwrap();
+							let o_vtr = o_vel.0.translation();
+							let o_vtr_x=o_vtr.x;
+							let o_vtr_y=o_vtr.y;
+							let o_vtr_z=o_vtr.z;
+							if dist <= ship.get_radius_with_transform(&pos,tp)+ship2.get_radius_with_transform(pos2,op) && (o_vtr_x*xr+o_vtr_y*yr+o_vtr_z*zr)>0.0 {
 
-									o_vel.c[iteration].prepend_translation(
-										{
+
+								let coeff_1=(o_mass-t_mass)/(t_mass+o_mass);
+								let coeff_2=2.0*t_mass/(t_mass+o_mass);
+
+								let x=t_vtr_x;
+								let y=t_vtr_y;
+								let z=t_vtr_z;
+
+								let omag=(o_vtr_x*o_vtr_x+o_vtr_y*o_vtr_y+o_vtr_z*o_vtr_z).sqrt()*coeff_1;
+
+								let rmag=(x*x+y*y+z*z).sqrt()*coeff_2+omag;
+
+								o_vel.1.prepend_translation(
+									{
 										let mut t=Transform::default();
 										t.set_translation_xyz(
-											x,y,z
+											-rmag*xr,
+											-rmag*yr,
+											-rmag*zr,
 										);
 										t.translation().clone()
-										}
-									);
-								}
+									}
+								);
 							}
 						}
 					}
-					//finish up by ensuring everything is on-screen
+				}
 
-					let mut tm=vels.get_mut(id).unwrap().c[iteration].translation_mut();
+				for (ent) in (&*entities).join() {
+					if let Some(mstring) = mstrings.get(ent) {
+						// let mstring=mstrings.get(ent).unwrap().clone();
+						let op=poss.get(mstring.one).unwrap();
+						let opt=op.translation();
 
-					if op.x>=GAME_WIDTH/2.0 && tm.x>0.0 {
-						tm.x*=-1.0;
-					} else if op.x<=-GAME_WIDTH/2.0 && tm.x<0.0 {
-						tm.x*=-1.0;
+						let tp=poss.get(mstring.two).unwrap();
+						let tpt=tp.translation();
+
+						let x_to = tpt.x-opt.x;
+						let y_to = tpt.y-opt.y;
+						let z_to = tpt.z-opt.z;
+
+
+						let dist=(x_to*x_to+y_to*y_to+z_to*z_to).sqrt();
+
+
+						let xr=x_to/dist;
+						let yr=y_to/dist;
+						let zr=z_to/dist;
+
+						let oship=ships.get(mstring.one).unwrap();
+						let tship=ships.get(mstring.two).unwrap();
+						// en garde
+						let o_mass=oship.calculate_mass();
+						let t_mass=tship.calculate_mass();
+
+						let o_vel=vels.get(mstring.one).unwrap();
+						let o_vtr=o_vel.0.translation();
+						let o_vtr_x=o_vtr.x;
+						let o_vtr_y=o_vtr.y;
+						let o_vtr_z=o_vtr.z;
+
+						let t_vel=vels.get(mstring.two).unwrap();
+						let t_vtr=o_vel.0.translation();
+						let t_vtr_x=t_vtr.x;
+						let t_vtr_y=t_vtr.y;
+						let t_vtr_z=t_vtr.z;
+
+						let string_distance = mstring.length;
+						let max_tension = mstring.max_tension;
+						if dist>string_distance {
+							let coeff_1=(o_mass-t_mass)/(t_mass+o_mass);
+							let coeff_2=2.0*t_mass/(t_mass+o_mass);
+
+							let x=t_vtr_x;
+							let y=t_vtr_y;
+							let z=t_vtr_z;
+
+							let omag=(o_vtr_x*o_vtr_x+o_vtr_y*o_vtr_y+o_vtr_z*o_vtr_z).sqrt()*coeff_1;
+							// println !("En garde!");
+							let rmag=(x*x+y*y+z*z).sqrt()*coeff_2+omag;
+							if o_mass*omag/coeff_1>max_tension {
+								let sub=max_tension/o_mass;
+								vels.get_mut(mstring.one).unwrap().1.prepend_translation(
+									{
+										let mut t=Transform::default();
+										t.set_translation_xyz(
+											sub*xr,
+											sub*yr,
+											sub*zr,
+										);
+										t.translation().clone()
+									}
+								);
+								vels.get_mut(mstring.two).unwrap().1.prepend_translation(
+									{
+										let mut t=Transform::default();
+										t.set_translation_xyz(
+											-sub*xr,
+											-sub*yr,
+											-sub*zr,
+										);
+										t.translation().clone()
+									}
+								);
+								entities.delete(ent);
+								mstrings.remove(ent);
+							} else {
+								vels.get_mut(mstring.one).unwrap().1.prepend_translation(
+									{
+										let mut t=Transform::default();
+										t.set_translation_xyz(
+											rmag*xr,
+											rmag*yr,
+											rmag*zr,
+										);
+										t.translation().clone()
+									}
+								);
+								vels.get_mut(mstring.two).unwrap().1.prepend_translation(
+									{
+										let mut t=Transform::default();
+										t.set_translation_xyz(
+											-rmag*xr,
+											-rmag*yr,
+											-rmag*zr,
+										);
+										t.translation().clone()
+									}
+								);
+							}
+						}
 					}
-					if op.y>=GAME_HEIGHT/2.0 && tm.y>0.0 {
-						tm.y*=-1.0;
-					} else if op.y<=-GAME_HEIGHT/2.0 && tm.y<0.0 {
-						tm.y*=-1.0;
-					}
+				}
 
+				//finish up by ensuring everything is on-screen
+				let o_vel=vels.get_mut(id).unwrap();
+				let o_vtr = o_vel.0.translation();
+				let o_vtr_x=o_vtr.x;
+				let o_vtr_y=o_vtr.y;
+				let o_vtr_z=o_vtr.z;
+				let mut tm=vels.get_mut(id).unwrap().1.translation_mut();
+
+				if op.x>=GAME_WIDTH/2.0 && o_vtr_x>0.0 {
+					tm.x*=-1.0;
+				} else if op.x<=-GAME_WIDTH/2.0 && o_vtr_x<0.0 {
+					tm.x*=-1.0;
 				}
+				if op.y>=GAME_HEIGHT/2.0 && o_vtr_y>0.0 {
+					tm.y*=-1.0;
+				} else if op.y<=-GAME_HEIGHT/2.0 && o_vtr_y<0.0 {
+					tm.y*=-1.0;
+				}
+
 			}
-			if iteration==1 {
-				for (vel,pos,temppos) in (&mut vels,&mut poss,&mut tempposs).join() {
-					vel.c[2]=vel.c[1].clone();
-					let tr1=vel.c[1].translation();
-					let tr2=vel.c[2].translation();
-					vel.c[2].set_translation((tr1+tr2)/2.0);//VERLET
-					pos.prepend_translation(vel.c[2].translation().clone()*delta*self.translation_scale);
-					temppos.0=pos.clone();
-					let (xr,yr,zr) = vel.c[2].euler_angles();
-					let (xpr,ypr,zpr) = pos.euler_angles();
-					pos.set_rotation_euler(xr*delta*self.rotation_scale+xpr*delta*self.rotation_scale,yr*delta*self.rotation_scale+ypr,zr*delta*self.rotation_scale+zpr);
-				}
-			} else {
-				for (vel,temppos) in (&mut vels,&mut tempposs).join() {
-					vel.c[1]=vel.c[0].clone();
-					temppos.0.prepend_translation(vel.c[1].translation().clone()*delta*self.translation_scale);
-					let (xr,yr,zr) = vel.c[1].euler_angles();
-					let (xpr,ypr,zpr) = temppos.0.euler_angles();
-					temppos.0.set_rotation_euler(xr*delta*self.rotation_scale+xpr*delta*self.rotation_scale,yr*delta*self.rotation_scale+ypr,zr*delta*self.rotation_scale+zpr);
-				}
-			}
+		}
+
+		//strings
+		// //this system works in "reverse" -- that is, each object affects others and not itself.
+		//
+		// for (id) in (&*entities).join() {
+		// 	if let Some(ship) = ships.get(id) {
+		// 		for (oid) in (&*entities).join() {
+		// 			if oid!=id {
+		// 				if let Some(ship2) = ships.get(oid) {
+		//
+		// 				}
+		// 			}
+		// 		}
+		// 	}
+		// }
+
+		for (vel,pos) in (&mut vels,&mut poss).join() {
+			vel.0=vel.1.clone();
+			pos.prepend_translation(vel.0.translation().clone()*delta*self.translation_scale);
+			let (xr,yr,zr) = vel.0.euler_angles();
+			let (xpr,ypr,zpr) = pos.euler_angles();
+			pos.set_rotation_euler(xr*delta*self.rotation_scale+xpr*delta*self.rotation_scale,yr*delta*self.rotation_scale+ypr,zr*delta*self.rotation_scale+zpr);
 		}
 	}
 }

@@ -87,7 +87,7 @@ impl<'s> System<'s> for PlayerInputSystem {
 				},
 			};
 			//now, instead of leaving this information for the next system, we'll just add to the position for a test.
-			vel.c[2].prepend_translation(accel1.translation().clone());
+			vel.1.prepend_translation(accel1.translation().clone());
 			// vel.0.set_translation_xyz(
 			// 	//x
 			//
